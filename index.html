@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Be My Girlfriend?</title>
   <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
     body {
       margin: 0;
       padding: 0;
@@ -12,12 +18,13 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
       font-family: "Courier New", monospace;
     }
     canvas {
       display: block;
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       z-index: 1;
@@ -28,22 +35,22 @@
       z-index: 10;
       background: #000;
       border: 2px solid #fff;
-      box-shadow: 0 0 15px rgba(255,255,255,0.4);
-      width: 320px;
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+      width: 88%;
+      max-width: 340px;
       text-align: center;
-      display: block;
     }
     .window-header {
       background: #111;
       border-bottom: 2px solid #fff;
-      padding: 6px;
+      padding: 8px 10px;
       display: flex;
       justify-content: flex-start;
-      gap: 5px;
+      gap: 6px;
     }
     .dot {
-      width: 10px;
-      height: 10px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
       display: inline-block;
       border: 1px solid #fff;
@@ -52,27 +59,29 @@
     .dot-yellow { background: #ffbd2e; }
     .dot-green { background: #27c93f; }
     .window-body {
-      padding: 30px 20px;
+      padding: 28px 18px;
       color: #fff;
-      font-size: 16px;
+      font-size: 17px;
       line-height: 1.5;
     }
     .buttons {
-      padding-bottom: 20px;
+      padding-bottom: 22px;
       display: flex;
       justify-content: center;
-      gap: 15px;
+      gap: 18px;
     }
     .btn {
       background: #000;
       color: #fff;
       border: 2px solid #fff;
-      padding: 6px 20px;
+      padding: 10px 24px;
+      font-size: 16px;
       font-weight: bold;
       cursor: pointer;
       font-family: "Courier New", monospace;
+      touch-action: manipulation;
     }
-    .btn:hover {
+    .btn:active, .btn:hover {
       background: #fff;
       color: #000;
     }
@@ -111,32 +120,47 @@
 
     let width, height, columns, drops;
     const chars = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ♡';
-    const fontSize = 16;
+    let fontSize = 14;
 
-    // "No" button eka click karoth wena wadak (Move wena eka hari click karanna bari wena eka)
-    noBtn.addEventListener('mouseover', () => {
-      const x = Math.random() * (window.innerWidth - noBtn.offsetWidth);
-      const y = Math.random() * (window.innerHeight - noBtn.offsetHeight);
-      noBtn.style.position = 'absolute';
+    // Mobile touch & Desktop hover dekatama "No" button eka panala yanna
+    function moveNoButton(e) {
+      if (e) e.preventDefault();
+      const padding = 20;
+      const maxX = window.innerWidth - noBtn.offsetWidth - padding;
+      const maxY = window.innerHeight - noBtn.offsetHeight - padding;
+      const x = Math.max(padding, Math.random() * maxX);
+      const y = Math.max(padding, Math.random() * maxY);
+
+      noBtn.style.position = 'fixed';
       noBtn.style.left = `${x}px`;
       noBtn.style.top = `${y}px`;
-    });
+      noBtn.style.zIndex = '20';
+    }
 
-    // "Yes" button eka click karoth pop-up eka nathi wela Matrix animation eka patan gannawa
+    noBtn.addEventListener('mouseover', moveNoButton);
+    noBtn.addEventListener('touchstart', moveNoButton, { passive: false });
+    noBtn.addEventListener('click', moveNoButton);
+
+    // "Yes" click kalama animation eka start wenawa
     yesBtn.addEventListener('click', () => {
       popup.classList.add('hidden');
+      noBtn.classList.add('hidden');
       canvas.classList.remove('hidden');
-      
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+
+      resizeCanvas();
       initMatrix();
       animate(0);
     });
 
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      fontSize = width < 500 ? 13 : 16;
+    }
+
     window.addEventListener('resize', () => {
       if (!canvas.classList.contains('hidden')) {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
+        resizeCanvas();
         initMatrix();
       }
     });
@@ -164,33 +188,42 @@
       const cy = height / 2;
       const pulse = 1 + Math.sin(time * 0.004) * 0.05;
 
+      // Screen size ekata galapena widihata Heart saha Text size adjust kirima
+      const minDim = Math.min(width, height);
+      const baseScale = (minDim / 55) * pulse;
+      const textSize = Math.max(28, Math.min(46, Math.floor(width / 9)));
+      const textOffsetY = baseScale * 15;
+      const heartOffsetY = baseScale * 4;
+
       ctx.save();
       ctx.shadowColor = '#ff2a85';
       ctx.shadowBlur = 25;
       ctx.fillStyle = '#ffb3d9';
 
-      // Text
-      ctx.font = 'bold 42px "Courier New", monospace';
+      // "LOVE YOU" Text
+      ctx.font = `bold ${textSize}px "Courier New", monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('LOVE YOU', cx, cy - 110);
+      ctx.fillText('LOVE YOU', cx, cy - textOffsetY);
 
-      // Heart
+      // Heart Shape
       ctx.beginPath();
-      const scale = 7.5 * pulse;
       for (let t = 0; t <= Math.PI * 2; t += 0.02) {
-        const pt = heartPoint(t, cx, cy + 40, scale);
+        const pt = heartPoint(t, cx, cy + heartOffsetY, baseScale);
         if (t === 0) ctx.moveTo(pt.x, pt.y);
         else ctx.lineTo(pt.x, pt.y);
       }
       ctx.closePath();
       ctx.fill();
 
-      // Scanlines
+      // CRT Scanlines
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(10, 0, 10, 0.35)';
-      for (let y = cy - 160; y < cy + 180; y += 4) {
-        ctx.fillRect(cx - 200, y, 400, 1.5);
+      const boxHalfW = Math.min(width / 2, baseScale * 22);
+      const topY = cy - textOffsetY - textSize;
+      const bottomY = cy + heartOffsetY + baseScale * 18;
+      for (let y = topY; y < bottomY; y += 4) {
+        ctx.fillRect(cx - boxHalfW, y, boxHalfW * 2, 1.5);
       }
 
       ctx.restore();
